@@ -128,15 +128,97 @@ def generate_file_tree_file(file_tree_output, file_tree_lines):
             tree_file.write("\n".join(file_tree_lines))
         print(f"File tree has been written to '{file_tree_output}'.")
 
+def write_titles_before_content(input_folder, output_file, file_type=None, ignore_word=None, max_file_size=None, transform_content=None):
+    """
+    Writes the titles of each file before its content.
+    """
+    try:
+        validate_input_folder(input_folder)
+        with open(output_file, 'w') as outfile:
+            for root, dirs, files in os.walk(input_folder):
+                for filename in files:
+                    if should_process_file(filename, file_type, ignore_word, max_file_size, os.path.join(root, filename), []):
+                        file_path = os.path.join(root, filename)
+                        try:
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as infile:
+                                content = infile.read()
+                                if transform_content:
+                                    content = transform_content(content)
+                                outfile.write(f"// {filename}\n")
+                                outfile.write(content)
+                                outfile.write("\n\n")
+                                print(f"Processed: {file_path}")
+                        except PermissionError:
+                            print(f"Permission denied: {file_path}. Skipping this file.")
+                        except Exception as e:
+                            print(f"Error reading {file_path}: {e}")
+        print(f"All files with titles have been written to '{output_file}'.")
+    except Exception as e:
+        print(f"Error: {e}")
+
+def write_titles_with_tree_map(input_folder, output_file, file_type=None, ignore_word=None, max_file_size=None, transform_content=None):
+    """
+    Writes the titles with a tree map structure before the content.
+    """
+    try:
+        validate_input_folder(input_folder)
+        file_tree_lines = []
+        with open(output_file, 'w') as outfile:
+            for root, dirs, files in os.walk(input_folder):
+                relative_root = os.path.relpath(root, input_folder)
+                if relative_root == '.':
+                    file_tree_lines.append(f"- {os.path.basename(input_folder)}/")
+                else:
+                    file_tree_lines.append(f"{'  ' * relative_root.count(os.sep)}- {os.path.basename(root)}/")
+
+                for filename in files:
+                    if should_process_file(filename, file_type, ignore_word, max_file_size, os.path.join(root, filename), []):
+                        file_path = os.path.join(root, filename)
+                        try:
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as infile:
+                                content = infile.read()
+                                if transform_content:
+                                    content = transform_content(content)
+                                relative_path = os.path.relpath(file_path, input_folder)
+                                outfile.write(f"// {relative_path}\n")
+                                outfile.write(content)
+                                outfile.write("\n\n")
+                                print(f"Processed: {file_path}")
+
+                                # Add file to the tree map
+                                file_tree_lines.append(f"{'  ' * (relative_root.count(os.sep) + 1)}- {filename}")
+                        except PermissionError:
+                            print(f"Permission denied: {file_path}. Skipping this file.")
+                        except Exception as e:
+                            print(f"Error reading {file_path}: {e}")
+
+        with open(output_file + '.tree', 'w') as tree_file:
+            tree_file.write("\n".join(file_tree_lines))
+        print(f"All files with titles and tree map have been written to '{output_file}'. Tree map written to '{output_file}.tree'.")
+    except Exception as e:
+        print(f"Error: {e}")
+
 # Example usage:
-input_folder = r"C:\Users\mario\Github\Repositories\mariodbx\playing_with_python"  # Replace with the path to your folder
+#input_folder = r"C:\Users\mario\Desktop\multiplayer-game-main"  # Replace with the path to your folder
+#output_file = r"C:\Users\mario\Desktop\multiplayer-game-main-readed.txt"  # Replace with the path to your output file
+#ignore_word = 'Assembly'  # Replace with the word to ignore in file names, or set to None
+#max_file_size = None  # Set max file size in bytes (e.g., 1MB), or set to None
+#transform_content = None  # Example transformation function (e.g., str.upper), or set to None
+# Example usage:
+input_folder = r"C:\Users\mario\Desktop\multiplayer-game-main"  # Replace with the path to your folder
 file_type = None                     # Set to None to include all file types, or specify a file type like '.cs'
-output_file = r"C:\Users\mario\Github\Repositories\mariodbx\playing_with_python\py_text_reader\file_readed"   # Replace with the path to your output file
+output_file = r"C:\Users\mario\Desktop\multiplayer-game-main-readed.txt"   # Replace with the path to your output file
 ignore_word = 'Assembly'                 # Replace with the word to ignore in file names, or set to None
 max_file_size = None          # Set max file size in bytes (e.g., 1MB), or set to None
 header = "This is a custom header"   # Custom header text, or set to None
 footer = "This is a custom footer"   # Custom footer text, or set to None
 transform_content = None             # Example transformation function (e.g., str.upper), or set to None
-file_tree_output = r"C:\Users\mario\Github\Repositories\mariodbx\playing_with_python\py_text_reader\file_tree"  # Replace with the path to your file tree output file
+file_tree_output = r"C:\Users\mario\Desktop\multiplayer-game-main-tree.txt"  # Replace with the path to your file tree output file
 
-read_and_write_files_recursively(input_folder, file_type, output_file, ignore_word, max_file_size, header, footer, transform_content, file_tree_output)
+# Function call to write titles before content
+write_titles_before_content(input_folder, output_file, file_type=None, ignore_word=ignore_word, max_file_size=max_file_size, transform_content=transform_content)
+
+# Function call to write titles with tree map
+write_titles_with_tree_map(input_folder, output_file, file_type=None, ignore_word=ignore_word, max_file_size=max_file_size, transform_content=transform_content)
+
+#read_and_write_files_recursively(input_folder, file_type, output_file, ignore_word, max_file_size, header, footer, transform_content, file_tree_output)
